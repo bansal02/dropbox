@@ -22,7 +22,7 @@ A simple file storage and sharing application built with Java Spring Boot backen
 ### Step 1: Clone the Repository
 
 ```bash
-git clone <your-github-repository-url>
+git clone https://github.com/bansal02/dropbox.git
 cd dropbox
 ```
 
