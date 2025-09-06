@@ -1,0 +1,61 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dropbox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dropbox_db
+      POSTGRES_USER: dropbox_user
+      POSTGRES_PASSWORD: dropbox_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropbox_user -d dropbox_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dropbox-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dropbox_db
+      SPRING_DATASOURCE_USERNAME: dropbox_user
+      SPRING_DATASOURCE_PASSWORD: dropbox_password
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/files/list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dropbox-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_uploads:
